@@ -1,0 +1,248 @@
+See discussions, stats, and author profiles for this publication at: https://www.researchgate.net/publication/333934237
+
+Introduction to Matrix Factorization for Recommender Systems
+Article · December 2018
+
+CITATIONS
+
+READS
+
+0
+
+346
+
+1 author:
+Shalin S Shah
+Johns Hopkins University
+16 PUBLICATIONS 36 CITATIONS
+SEE PROFILE
+
+All content following this page was uploaded by Shalin S Shah on 21 June 2019.
+The user has requested enhancement of the downloaded file.
+
+Introduction to Matrix Factorization for Recommender Systems
+Shalin Shah
+Applied and Computational Mathematics, Johns Hopkins University
+shah.shalin@gmail.com
+
+Abstract
+Recommender systems aim to personalize the experience of user by suggesting items to the user based on
+the preferences of a user. The preferences are learned from the user’s interaction history or through explicit
+ratings that the user has given to the items. The system could be part of a retail website, an online bookstore,
+a movie rental service or an online education portal and so on. In this paper, I will focus on matrix
+factorization algorithms as applied to recommender systems and discuss the singular value decomposition,
+gradient descent-based matrix factorization and parallelizing matrix factorization for large scale
+applications.
+
+1. The Singular Value Decomposition
+Matrix factorization algorithms decompose a matrix into components which can then be used for various
+purposes. Eigen-decomposition decomposes a square matrix into a matrix P and a diagonal matrix D.
+𝐴 = 𝑃𝐷𝑃%&
+Where P is a matrix that contains the eigenvectors of A and D is a diagonal matrix that contains the
+eigenvalues of A on its diagonal. This decomposition is particularly useful for computing large matrix
+powers, in applications such as Markov processes. Principal components analysis (PCA) uses eigendecomposition to compute the principal components which are eigenvectors of the covariance matrix ATA.
+A very related decomposition is the Singular Value Decomposition (SVD) which can factorize non-square
+matrices with a similar interpretation. SVD factorizes a rectangular m x n matrix A into three matrices, U,
+S and VT. U is an m x m matrix, S is an m x n diagonal matrix and V is an n x n matrix. U captures
+information about the rows of A and V captures information about the columns of A. The columns of U
+and V are called the left and right singular vectors and the diagonal values of S are called the singular values
+of A (square roots of the eigenvalues). U and V are orthogonal matrices which says that all columns are
+orthogonal to the other columns and are unit vectors (also, UT = U-1 and VT = V-1). The SVD takes the
+following form:
+𝐴 = 𝑈Σ𝑉 *
+SVD is the same as PCA by noting the following:
+𝐴* 𝐴 = (𝑈Σ𝑉 * )* -𝑈ΣV / 0 = 𝑉Σ/ (𝑈 * 𝑈)ΣV / = 𝑉-Σ/ Σ0V /
+𝐴𝐴* = -𝑈ΣV / 0(𝑈Σ𝑉 * )* = 𝑈Σ(𝑉 * V)Σ* 𝑈 * = 𝑈-ΣΣ/ 0U/
+U contains eigenvectors of AAT and V contains the eigenvectors of ATA. The diagonal entries of S contain
+the square roots of the eigenvalues of either (they are equal). Both AAT and ATA are square symmetric
+matrices whose eigen-decomposition exists, and the eigenvectors are orthogonal. The next section shows
+how this decomposition can be used in recommender systems.
+
+2. SVD and Recommender Systems
+
+𝑈𝑠𝑒𝑟𝐼𝑡𝑒𝑚𝑀𝑎𝑡𝑟𝑖𝑥
+⎡
+𝑈𝑠𝑒𝑟 1
+⎢
+𝑈𝑠𝑒𝑟 2
+⎢
+⎢
+⋮
+⎣
+𝑈𝑠𝑒𝑟 𝑚
+
+𝐼𝑡𝑒𝑚 1
+1
+0
+⋮
+0
+
+⋯ 𝐼𝑡𝑒𝑚 𝑛
+⋯
+0 ⎤
+⎥
+⋯
+1 ⎥
+⋱
+⋮ ⎥
+⋯
+1 ⎦
+
+If A is an m x n matrix, and noting the similarity between SVD and PCA, it is clear that U contains latent
+information about the rows of A (of dimension m) and V contains latent information about the columns of
+A (of dimension n). The rank of a matrix is the number of non-zero rows (or columns) in its reduced form
+(which can be found using Gaussian-Elimination).
+𝑇ℎ𝑒 𝑟𝑎𝑛𝑘 𝑜𝑓 𝑎 𝑚𝑎𝑡𝑟𝑖𝑥 𝑖𝑠 𝑡ℎ𝑒 𝑛𝑢𝑚𝑏𝑒𝑟 𝑜𝑓 𝑛𝑜𝑛𝑧𝑒𝑟𝑜 𝑠𝑖𝑛𝑔𝑢𝑙𝑎𝑟 𝑣𝑎𝑙𝑢𝑒𝑠.
+𝑃𝑟𝑜𝑜𝑓:
+𝑈 𝑎𝑛𝑑 𝑉 𝑎𝑟𝑒 𝑠𝑞𝑢𝑎𝑟𝑒 𝑓𝑢𝑙𝑙 𝑟𝑎𝑛𝑘 𝑚𝑎𝑡𝑟𝑖𝑐𝑒𝑠 𝑏𝑒𝑐𝑎𝑢𝑠𝑒 𝑡ℎ𝑒𝑦 𝑎𝑟𝑒 𝑜𝑟𝑡ℎ𝑜𝑔𝑜𝑛𝑎𝑙.
+𝑈𝑈 * = 𝐼[ => det(𝑈) = 1 (because det(𝑈) = det(𝑈 * )) => 𝑈 𝑖𝑠 𝑛𝑜𝑛𝑠𝑖𝑛𝑔𝑢𝑙𝑎𝑟
+=> 𝑈 𝑖𝑠 𝑓𝑢𝑙𝑙 𝑟𝑎𝑛𝑘 => 𝑟𝑎𝑛𝑘(𝑈) = 𝑚, 𝑟𝑎𝑛𝑘(𝑉) = 𝑛, 𝑟𝑎𝑛𝑘(S) = s,
+(where s = number of nonzero singular values)
+𝑅𝑎𝑛𝑘 𝑜𝑓 𝑡ℎ𝑒 𝑝𝑟𝑜𝑑𝑢𝑐𝑡 𝑜𝑓 𝑎 𝑓𝑢𝑙𝑙 𝑟𝑎𝑛𝑘 𝑚𝑎𝑡𝑟𝑖𝑥 𝑋 𝑎𝑛𝑑 𝑎 𝑚𝑎𝑡𝑟𝑖𝑥 𝑌 𝑖𝑠:
+𝑟𝑎𝑛𝑘(𝑋𝑌) = min(𝑟𝑎𝑛𝑘(𝑋), 𝑟𝑎𝑛𝑘(𝑌))
+𝑆𝑜, 𝑟𝑎𝑛𝑘(𝑈S) = min(m, s) = s
+𝑎𝑛𝑑 𝑟𝑎𝑛𝑘-(US)V / 0 = min(𝑠, 𝑛) = 𝑠
+𝑇ℎ𝑢𝑠, 𝑟𝑎𝑛𝑘-𝑈SV / 0 = 𝑠 = 𝑛𝑢𝑚𝑏𝑒𝑟 𝑜𝑓 𝑛𝑜𝑛𝑧𝑒𝑟𝑜 𝑠𝑖𝑛𝑔𝑢𝑙𝑎𝑟 𝑣𝑎𝑙𝑢𝑒𝑠
+∎
+By ignoring all singular values less than the kth largest (and similarly the singular vectors in U and V), a
+rank reduced matrix can be constructed from A. In the rank reduced form, U is now an m x k matrix, S is a
+k x k diagonal matrix and VT is a k x n matrix (the rank reduced form using SVD is the best rank k
+approximation to the original matrix A, as compared using the Frobenius norm of the difference). Rank
+reduction to rank k constructs k-dimensional latent factors in US and SVT. These latent factors can be
+interpreted as embeddings in some space. If A originally contained users as the rows and retail products as
+its columns, the k-dimensional rows of US contain the latent factors of the users and the k-dimensional
+columns of SVT contain the latent factors of the retail products [12] (where there are m users and n items
+i.e. the original matrix A is an m x n matrix with a 1 if the user interacted with the respective item and a 0
+otherwise).
+Inner products between the user and item latent factors can be interpreted as an affinity of the user for a
+specific item. Thus, the top c non-increasing inner products of a user latent factor with all item factors gives
+the top c items that can be recommended to the user. The interpretation is that these rank-reduced latent
+factors contain latent information about the user and the item, such as inclination towards categories, colors,
+style, brand etc. and that a large value of the dot product between the user and item factors implies similar
+interests and properties of the user and the item respectively.
+SVD for recommender systems was used by participants of the Netflix prize [1]. SVD can be computed in
+min(O(m2n), O(n2m)) time i.e. roughly cubic for a square matrix. MATLAB might have more efficient
+ways of computing the SVD. The singular values are, in some form, the relative importance of the latent
+information present in U and V. There are other ways of computing embeddings or latent factors using
+neural networks (e.g. word2vec [2]) which are not based on matrix factorization, though, there have been
+attempts to relate matrix factorization with neural embeddings [3]. All algorithms use some form of a
+context to construct the rows and columns of A (i.e. items bought by one user are somehow similar, and
+items viewed in the same web session are similar and so on).
+
+3. Matrix Factorization using Gradient Descent
+The disadvantage of SVD is that it cannot handle matrices with missing values. In most recommender
+systems applications, a user interacts with a very small subset of products and it is not necessarily true that
+the user is not interested in all of the remaining majority of products. And SVD, in its naïve form requires
+too many computing resources and is not easily parallelizable for very large-scale systems.
+It is possible to learn the latent factors of the users and items using gradient descent. By choosing an
+appropriate cost function (e.g. sum of squared errors) and then doing updates of the latent factors iteratively,
+the algorithm can learn more effectively, and it is a lot more scalable.
+𝑆𝑎𝑦 𝑣x = 𝑢𝑠𝑒𝑟 𝑙𝑎𝑡𝑒𝑛𝑡 𝑓𝑎𝑐𝑡𝑜𝑟 𝑎𝑛𝑑 𝑣y = 𝑖𝑡𝑒𝑚 𝑙𝑎𝑡𝑒𝑛𝑡 𝑓𝑎𝑐𝑡𝑜𝑟, 𝑎𝑛𝑑
+𝑟xy = 𝑟𝑎𝑡𝑖𝑛𝑔 𝑡ℎ𝑎𝑡 𝑡ℎ𝑒 𝑢𝑠𝑒𝑟 𝑔𝑎𝑣𝑒 𝑡𝑜 𝑖𝑡𝑒𝑚 𝑖
+(𝑡ℎ𝑖𝑠 𝑐𝑜𝑢𝑙𝑑 𝑡𝑎𝑘𝑒 𝑜𝑛 𝑣𝑎𝑙𝑢𝑒𝑠 𝑜𝑓 0 𝑎𝑛𝑑 1, 𝑎𝑛𝑑 𝑎
+𝑙𝑜𝑔𝑖𝑠𝑡𝑖𝑐 𝑠𝑞𝑢𝑎𝑠ℎ𝑖𝑛𝑔 𝑓𝑢𝑛𝑐𝑡𝑖𝑜𝑛 𝑐𝑜𝑢𝑙𝑑 𝑏𝑒 𝑢𝑠𝑒𝑑 𝑓𝑜𝑟 𝑡ℎ𝑒 𝑑𝑜𝑡 𝑝𝑟𝑜𝑑𝑢𝑐𝑡)
+𝐶𝑜𝑠𝑡 𝐹𝑢𝑛𝑐𝑡𝑖𝑜𝑛 = 𝑓 = (𝑟xy − 𝑣x . 𝑣y )}
+𝐴𝑛𝑑 𝑖𝑡𝑠 𝑑𝑒𝑟𝑖𝑣𝑎𝑡𝑖𝑣𝑒𝑠:
+𝜕𝑓
+= 2(𝑣x 𝑣y} − 𝑟xy . 𝑣y )
+𝜕𝑣x
+𝜕𝑓
+= 2(𝑣x} 𝑣y − 𝑟xy . 𝑣x )
+𝜕𝑣y
+In the algorithm to update the latent factors of users and items, it is sufficient to use just those items that a
+user interacted with, and negatively sampling from the items that the user did not interact with (i.e. putting
+equal emphasis on items viewed and not viewed). Then stochastic gradient descent could be used to update
+the user and item latent factors:
+𝑆𝑡𝑜𝑐ℎ𝑎𝑠𝑡𝑖𝑐 𝐺𝑟𝑎𝑑𝑖𝑒𝑛𝑡 𝐷𝑒𝑠𝑐𝑒𝑛𝑡:
+𝐼𝑛𝑖𝑡𝑖𝑎𝑙𝑖𝑧𝑒 𝑎𝑙𝑙 𝑢𝑠𝑒𝑟 𝑎𝑛𝑑 𝑖𝑡𝑒𝑚 𝑓𝑎𝑐𝑡𝑜𝑟𝑠 𝑡𝑜 ℕ(0,1)
+𝑆𝑎𝑚𝑝𝑙𝑒 𝑎 𝑢𝑠𝑒𝑟 𝑢, 𝑎 𝑣𝑖𝑒𝑤𝑒𝑑 𝑖𝑡𝑒𝑚 𝑖 𝑎𝑛𝑑 𝑎 𝑛𝑜𝑡 𝑣𝑖𝑒𝑤𝑒𝑑 𝑖𝑡𝑒𝑚 𝑗
+𝑈𝑝𝑑𝑎𝑡𝑒 𝑡ℎ𝑒 𝑢𝑠𝑒𝑟 𝑢, 𝑖𝑡𝑒𝑚 𝑖 𝑎𝑛𝑑 𝑖𝑡𝑒𝑚 𝑗 𝑓𝑎𝑐𝑡𝑜𝑟𝑠 𝑢𝑠𝑖𝑛𝑔 𝑡ℎ𝑒 𝑑𝑒𝑟𝑖𝑣𝑎𝑡𝑖𝑣𝑒𝑠 𝑗𝑢𝑠𝑡 𝑐𝑜𝑚𝑝𝑢𝑡𝑒𝑑
+𝜕𝑓
+𝑣x = 𝑣x − 𝜂
+𝜕𝑣 x
+𝜕𝑓
+𝑣y = 𝑣y − 𝜂
+𝜕𝑣 y
+𝑅𝑒𝑝𝑒𝑎𝑡 𝑓𝑜𝑟 𝑡ℎ𝑒 𝑑𝑒𝑠𝑖𝑟𝑒𝑑 𝑛𝑢𝑚𝑏𝑒𝑟 𝑜𝑓 𝑖𝑡𝑒𝑟𝑎𝑡𝑖𝑜𝑛𝑠, 𝑜𝑟 𝑢𝑛𝑡𝑖𝑙 𝑐𝑜𝑛𝑣𝑒𝑟𝑔𝑒𝑛𝑐𝑒
+Where, h is the learning rate or step size (usually something like 0.01 or even less). This algorithm will
+learn the latent factors of all users and items. To recommend items to a user, the top c items with the highest
+𝑣x 𝑣y could be used.
+Geometrically, similar users will appear in similar areas and similar items will get clustered together. The
+value of k (dimension of the latent factors) is a parameter, and usually a value between 50 and 100 works
+pretty good for many cases.
+
+4. Parallelizing Matrix Factorization using Spark
+Matrix factorization using stochastic gradient descent can be easily parallelized on Spark.
+Spark [5][6] is a parallel processing system which is based on a particular format of storing data in memory
+and disk called resilient distributed datasets (RDD). The creator of the Spark based algorithm can choose
+which RDD resides in memory and which RDD resides entirely on disk. Spark has a driver which starts the
+application and controls the compute nodes that process some parts of the data in parallel.
+Spark has map, reduceByKey, groupByKey and many other operations. A groupByKey operation groups
+data by keys. The rows that have the same key are collected on one compute node. This is similar to the
+reduce operation in map-reduce [7][8]. Spark also has a broadcast mechanism in which data can be
+broadcasted to all nodes of the application. A map operation can transform data from one format or schema
+to another, similar to the map operation in map-reduce.
+In the parallel implementation of matrix factorization, there are several alternatives possible. It might be
+sufficient to parallelize the users into an RDD and broadcast the latent factors of all products to all nodes
+(if not, randomized joins could be used).
+The algorithm:
+1.
+2.
+3.
+4.
+5.
+6.
+7.
+8.
+
+Initialize all user factors to ℕ(0,1) and create an RDD<User>
+Initialize all product factors to ℕ(0,1) and store on the driver
+Broadcast all product factors using the Spark broadcast mechanism
+On the compute node of the RDD<User>, sample an item that the user interacted with and a
+random item that the user did not interact with.
+Update the user factor and return it
+Update both item factors and return them
+Complete the iteration by updating RDD<User> with the updated user factors and updating the
+item factors on the driver
+Iterate from 3 till convergence
+
+Convergence can be detected when the metric used to measure the recommendations doesn’t change much
+or starts reducing (early stopping). Many metrics can be used to measure the recommendations such as
+NDCG, Hit Rate, and Area under the Curve (AUC).
+
+5. Conclusion
+In this paper, I gave a brief overview of SVD, argued that SVD can be used for personalized
+recommendations, gave an implementation of matrix factorization based on gradient descent and then
+showed that it can be implemented on Spark for scale. There are several variations that can be used,
+especially the cost function for gradient descent. Item and user biases could be added to the cost function.
+Bayesian Personalized Ranking [9][10] places a Gaussian prior on the latent factors. It might be interesting
+to compare pure feature based ranking algorithms such as Lambda Rank [11] with the matrix factorization
+approach. The latent factors could be compared with the ones created by neural embeddings.
+
+References
+[1] Koren, Yehuda, Robert Bell, and Chris Volinsky. "Matrix factorization techniques for recommender
+systems." Computer8 (2009): 30-37.
+[2] Mikolov, Tomas, et al. "Efficient estimation of word representations in vector space." arXiv preprint
+arXiv:1301.3781 (2013)
+[3] Levy, Omer, and Yoav Goldberg. "Neural word embedding as implicit matrix
+factorization." Advances in neural information processing systems. 2014.
+[4] “Understanding matrix factorization for recommendation”, Nicolas Hug
+[5] Zaharia, Matei, et al. "Resilient distributed datasets: A fault-tolerant abstraction for in-memory cluster
+computing." Proceedings of the 9th USENIX conference on Networked Systems Design and
+Implementation. USENIX Association, 2012.
+[6] Spark homepage on Apache.org, https://spark.apache.org/
+[7] Dean, Jeffrey, and Sanjay Ghemawat. "MapReduce: simplified data processing on large
+clusters." Communications of the ACM 51.1 (2008): 107-113.
+[8] https://en.wikipedia.org/wiki/MapReduce
+[9] Rodrigo, Alfredo Láinez, and Luke de Oliveira. "Distributed Bayesian Personalized Ranking in
+Spark."
+[10] Rendle, Steffen, et al. "BPR: Bayesian personalized ranking from implicit feedback." Proceedings of
+the twenty-fifth conference on uncertainty in artificial intelligence. AUAI Press, 2009.
+[11] Burges, Christopher JC. "From ranknet to lambdarank to lambdamart: An
+overview." Learning 11.23-581 (2010): 81.
+[12] Sarwar, Badrul, et al. Application of dimensionality reduction in recommender system-a case study.
+No. TR-00-043. Minnesota Univ Minneapolis Dept of Computer Science, 2000.
+
+View publication stats
+
+
